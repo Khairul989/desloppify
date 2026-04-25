@@ -34,6 +34,7 @@ from desloppify.engine._state.filtering import path_scoped_issues
 from desloppify.engine._state.issue_semantics import (
     counts_toward_objective_backlog,
     is_assessment_request,
+    is_review_work_item,
     is_triage_finding,
 )
 from desloppify.engine._state.schema import StateModel
@@ -164,17 +165,12 @@ def _merge_execution_candidates(
 ) -> tuple[list[WorkQueueItem], list[WorkQueueItem]]:
     """Merge queue-owned execution items with objective defaults."""
     explicit_queue_ids = _live_planned_queue_ids(plan)
-    active_cluster_ids = _active_cluster_issue_ids(plan)
 
     queued_non_review_items = [
         item
         for item in all_issue_items
         if item.get("id", "") in explicit_queue_ids
         and item.get("id", "") not in assessment_request_ids
-        and (
-            item.get("id", "") not in review_issue_ids
-            or item.get("id", "") in active_cluster_ids
-        )
     ]
 
     execution_candidates: list[WorkQueueItem] = []
@@ -276,11 +272,16 @@ def _phase_for_snapshot(
 ) -> str:
     has_execution = bool(anchored_execution_items or explicit_queue_items)
     raw_phase = current_lifecycle_phase(plan) if isinstance(plan, dict) else None
+    has_explicit_review_execution = any(
+        is_review_work_item(item) for item in explicit_queue_items
+    )
     # Suppress postflight signals (assessment/workflow/triage/review) when
-    # execution work exists and we're either in execute mode or have no plan.
-    # Without a plan, objective work always takes priority over postflight items.
+    # execution work exists and we're in execute mode, have no plan, or the
+    # durable plan explicitly queued imported review findings. Objective work
+    # discovered during postflight remains backlog-only until postflight ends,
+    # but review findings imported into queue_order must stay executable.
     suppress_postflight_signals = has_execution and (
-        raw_phase == "execute" or raw_phase is None
+        raw_phase == "execute" or raw_phase is None or has_explicit_review_execution
     )
     prefer_scan = raw_phase == "execute" and not has_execution
     if suppress_postflight_signals:
