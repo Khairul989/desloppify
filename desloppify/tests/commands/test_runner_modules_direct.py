@@ -186,6 +186,29 @@ def test_codex_batch_command_uses_sanitized_reasoning_effort(monkeypatch, tmp_pa
     assert f'model_reasoning_effort="low"' in command
 
 
+def test_codex_batch_command_uses_sandbox_env_override(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("sys.platform", "darwin")
+    monkeypatch.setattr("shutil.which", lambda _name: "/usr/local/bin/codex")
+    monkeypatch.setenv("DESLOPPIFY_CODEX_SANDBOX", "danger-full-access")
+
+    command = codex_batch_mod.codex_batch_command(
+        prompt="review prompt",
+        repo_root=tmp_path,
+        output_file=tmp_path / "out.json",
+    )
+
+    assert "-s" in command
+    assert command[command.index("-s") + 1] == "danger-full-access"
+
+    monkeypatch.setenv("DESLOPPIFY_CODEX_SANDBOX", "invalid")
+    command = codex_batch_mod.codex_batch_command(
+        prompt="review prompt",
+        repo_root=tmp_path,
+        output_file=tmp_path / "out.json",
+    )
+    assert command[command.index("-s") + 1] == "workspace-write"
+
+
 def test_run_codex_batch_retries_timeout_or_stall_until_success(monkeypatch, tmp_path: Path) -> None:
     attempts: list[int] = []
     sleeps: list[float] = []

@@ -87,6 +87,9 @@ def codex_batch_command(*, prompt: str, repo_root: Path, output_file: Path) -> l
     effort = os.environ.get("DESLOPPIFY_CODEX_REASONING_EFFORT", "low").strip().lower()
     if effort not in {"low", "medium", "high", "xhigh"}:
         effort = "low"
+    sandbox = os.environ.get("DESLOPPIFY_CODEX_SANDBOX", "workspace-write").strip().lower()
+    if sandbox not in {"read-only", "workspace-write", "danger-full-access"}:
+        sandbox = "workspace-write"
     prefix = _resolve_executable("codex")
     cmd = [
         *prefix,
@@ -95,7 +98,7 @@ def codex_batch_command(*, prompt: str, repo_root: Path, output_file: Path) -> l
         "-C",
         str(repo_root),
         "-s",
-        "workspace-write",
+        sandbox,
         "-c",
         'approval_policy="never"',
         "-c",

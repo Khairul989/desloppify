@@ -12,6 +12,10 @@ This is the canonical Codex overlay used by the README install command.
 
 Do not ask Codex review or triage prompts to spawn their own child agents. The supported Codex path is the first-class batch runner above: it already isolates packet slices, supports parallel subprocess execution, preserves retry artifacts, and keeps execution guardrails outside the model prompt. Revisit this only after Codex exposes a stable non-interactive subagent contract that can cap concurrency, preserve blind-packet isolation, and retry failed child tasks without increasing cost or weakening guardrails.
 
+### Sandbox
+
+Codex batch runs default to `-s workspace-write`. On hosts where that sandbox cannot run, such as WSL1 systems without the needed Linux namespace support, set `DESLOPPIFY_CODEX_SANDBOX=danger-full-access` in an externally sandboxed environment before running review batches. Supported values are `read-only`, `workspace-write`, and `danger-full-access`; invalid values fall back to `workspace-write`.
+
 ### Triage workflow
 
 Prefer automated triage: `desloppify plan triage --run-stages --runner codex`
