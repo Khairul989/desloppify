@@ -632,6 +632,77 @@ class TestFixDebugLogs:
         assert "lines_removed" in r
         assert "log_count" in r
 
+    def test_preserves_if_else_chain_after_debug_log_removal(self, tmp_path):
+        ts_file = tmp_path / "app.ts"
+        ts_file.write_text(
+            textwrap.dedent("""\
+            function process(data) {
+              if (data.debug) {
+                console.log('[DEBUG] processing data', data);
+              }
+              else {
+                processData(data);
+              }
+            }
+            """)
+        )
+        entries = [
+            {
+                "file": str(ts_file),
+                "line": 3,
+                "tag": "DEBUG",
+                "content": "console.log('[DEBUG] processing data', data);",
+            }
+        ]
+
+        fix_debug_logs(entries, dry_run=False)
+
+        content = ts_file.read_text()
+        assert "console.log" not in content
+        assert "if (data.debug)" in content
+        assert "else {" in content
+        assert "processData(data);" in content
+
+    def test_preserves_else_if_chain_after_debug_log_removal(self, tmp_path):
+        ts_file = tmp_path / "app.ts"
+        ts_file.write_text(
+            textwrap.dedent("""\
+            function process(data) {
+              if (data.debug) {
+                console.log('[DEBUG] processing data', data);
+              }
+              else if (data.trace) {
+                console.log('[TRACE] data', data);
+              }
+              else {
+                processData(data);
+              }
+            }
+            """)
+        )
+        entries = [
+            {
+                "file": str(ts_file),
+                "line": 3,
+                "tag": "DEBUG",
+                "content": "console.log('[DEBUG] processing data', data);",
+            },
+            {
+                "file": str(ts_file),
+                "line": 6,
+                "tag": "TRACE",
+                "content": "console.log('[TRACE] data', data);",
+            },
+        ]
+
+        fix_debug_logs(entries, dry_run=False)
+
+        content = ts_file.read_text()
+        assert "console.log" not in content
+        assert "if (data.debug)" in content
+        assert "else if (data.trace)" in content
+        assert "else {" in content
+
 
 # =====================================================================
 # params.py — _is_param_context, fix_unused_params
@@ -718,5 +789,4 @@ class TestFixUnusedParams:
         ]
         _ = fix_unused_params(entries, dry_run=True)
         assert ts_file.read_text() == original
-
 
