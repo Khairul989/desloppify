@@ -61,7 +61,7 @@ RUST_ENTRY_PATTERNS = [
 
 RUST_ZONE_RULES = [
     ZoneRule(Zone.PRODUCTION, ["/src/bin/"]),
-    ZoneRule(Zone.TEST, ["/tests/"]),
+    ZoneRule(Zone.TEST, ["/tests/", "_tests.rs", "test_"]),
     ZoneRule(Zone.SCRIPT, ["/examples/", "/benches/", "/fuzz/", "build.rs"]),
     ZoneRule(Zone.CONFIG, ["Cargo.toml", "Cargo.lock", "/.cargo/"]),
 ] + COMMON_ZONE_RULES
