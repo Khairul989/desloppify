@@ -74,13 +74,14 @@ def test_override_resolve_helpers_cover_synthetic_split_and_blocked_stages(
     blocked_cluster = resolve_helpers_mod.check_cluster_guard(
         ["small"], cluster_plan, state
     )
-    assert blocked_cluster is True
+    assert blocked_cluster is False
     out = capsys.readouterr().out
-    assert "mark them done individually first" in out
+    assert out == ""
 
     step_cluster_plan = {
         "clusters": {
             "step-cluster": {
+                "issue_ids": ["i1", "i2"],
                 "action_steps": [{"title": "Do auth fix", "issue_refs": ["i1", "i2"]}],
             }
         }
@@ -88,7 +89,53 @@ def test_override_resolve_helpers_cover_synthetic_split_and_blocked_stages(
     blocked_step_cluster = resolve_helpers_mod.check_cluster_guard(
         ["step-cluster"], step_cluster_plan, state
     )
-    assert blocked_step_cluster is True
+    assert blocked_step_cluster is False
+
+
+def test_override_resolve_cmd_confirm_allows_small_cluster(monkeypatch) -> None:
+    state = {
+        "issues": {
+            "i1": {"status": "open", "summary": "First", "detector": "review"},
+            "i2": {"status": "open", "summary": "Second", "detector": "review"},
+        }
+    }
+    plan = {"clusters": {"small": {"issue_ids": ["i1", "i2"]}}}
+    delegated: list[argparse.Namespace] = []
+    log_entries: list[dict] = []
+
+    monkeypatch.setattr(
+        override_resolve_cmd_mod,
+        "command_runtime",
+        lambda _args: SimpleNamespace(state=state),
+    )
+    monkeypatch.setattr(override_resolve_cmd_mod, "load_plan", lambda: plan)
+    monkeypatch.setattr(
+        override_resolve_cmd_mod,
+        "append_log_entry",
+        lambda *_args, **kwargs: log_entries.append(kwargs),
+    )
+    monkeypatch.setattr(override_resolve_cmd_mod, "save_plan", lambda _plan: None)
+    monkeypatch.setattr(override_resolve_cmd_mod, "cmd_resolve", delegated.append)
+
+    override_resolve_cmd_mod.cmd_plan_resolve(
+        argparse.Namespace(
+            patterns=["small"],
+            attest=None,
+            note="resolved the small cluster by applying the reviewed fix",
+            confirm=True,
+            force_resolve=False,
+            state=None,
+            lang=None,
+            path=".",
+            exclude=None,
+        )
+    )
+
+    assert len(delegated) == 1
+    assert delegated[0].patterns == ["small"]
+    assert delegated[0].status == "fixed"
+    assert delegated[0].attest.startswith("I have actually resolved the small cluster")
+    assert log_entries[0]["cluster_name"] == "small"
 
 
 def test_override_resolve_cmd_confirm_requires_note(capsys) -> None:
