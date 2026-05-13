@@ -24,12 +24,25 @@ from desloppify.base.tooling import check_config_staleness
 from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
 import desloppify.intelligence.narrative.core as narrative_mod
 
+_JUDGMENT_ATTESTATION_REQUIRED = ("not gaming",)
+_JUDGMENT_ATTESTATION_ALTERNATIVES = (("i have actually", "reviewed"),)
+
 
 def cmd_suppress(args: argparse.Namespace) -> None:
     """Suppress issues matching a pattern."""
     attestation = getattr(args, "attest", None)
-    if not validate_attestation(attestation):
-        show_attestation_requirement("Suppress", attestation, ATTEST_EXAMPLE)
+    if not validate_attestation(
+        attestation,
+        required_phrases=_JUDGMENT_ATTESTATION_REQUIRED,
+        any_of_phrases=_JUDGMENT_ATTESTATION_ALTERNATIVES,
+    ):
+        show_attestation_requirement(
+            "Suppress",
+            attestation,
+            ATTEST_EXAMPLE,
+            required_phrases=_JUDGMENT_ATTESTATION_REQUIRED,
+            any_of_phrases=_JUDGMENT_ATTESTATION_ALTERNATIVES,
+        )
         raise CommandError("Suppress requires a valid attestation.")
 
     runtime = command_runtime(args)

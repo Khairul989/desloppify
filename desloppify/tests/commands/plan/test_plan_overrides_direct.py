@@ -982,3 +982,14 @@ def test_validate_skip_requirements_accepts_review_attestation() -> None:
         ),
         note="Reviewed and intentionally accepted for now.",
     )
+
+
+def test_validate_skip_requirements_accepts_i_have_actually_attestation() -> None:
+    assert override_skip_mod._validate_skip_requirements(
+        kind="permanent",
+        attestation=(
+            "I have actually reviewed this triage skip against the code and I am "
+            "not gaming the score by suppressing a real defect."
+        ),
+        note="Reviewed and intentionally accepted for now.",
+    )
