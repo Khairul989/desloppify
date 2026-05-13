@@ -50,6 +50,12 @@ def test_config_has_core_phases():
     assert "Security" in labels
 
 
+def test_config_excludes_generic_unused_imports_phase():
+    cfg = get_lang("rust")
+    labels = [phase.label for phase in cfg.phases]
+    assert "Unused imports" not in labels
+
+
 def test_config_metadata():
     cfg = get_lang("rust")
     assert cfg.integration_depth == "full"
